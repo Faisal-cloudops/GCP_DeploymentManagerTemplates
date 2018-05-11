@@ -1,0 +1,37 @@
+resources:
+- name: {{ env["project"] }}-admin-uploader-logs
+  type: storage.v1.bucket
+  properties:
+    name: {{ env["project"] }}-admin-uploader-logs
+    storageClass: NEARLINE
+    location: asia-northeast1
+    versioning:
+      enabled: true
+    lifecycle:
+      rule:
+        - action:
+            type: Delete
+          condition:
+            age: 366
+    acl:
+    - role: OWNER
+      entity: project-owners-{{ env["project_number"] }}
+    defaultObjectAcl:
+    - role: OWNER
+      entity: project-owners-{{ env["project_number"] }}
+- name: {{ env["project"] }}-admin-uploader
+  type: storage.v1.bucket
+  properties:
+    name: {{ env["project"] }}-admin-uploader
+    storageClass: REGIONAL
+    location: asia-northeast1
+    versioning:
+      enabled: true
+    logging:
+      logBucket: {{ env["project"] }}-admin-uploader-logs
+    acl:
+    - role: OWNER
+      entity: project-owners-{{ env["project_number"] }}
+    defaultObjectAcl:
+    - role: OWNER
+      entity: project-owners-{{ env["project_number"] }}

@@ -1,0 +1,64 @@
+imports:
+- path: vpcNetwork-template.jinja
+- path: firewallRule-template.jinja
+- path: serviceAccount-template.jinja
+- path: computeEngine-template.jinja
+- path: cloudStorage-template.jinja
+
+resources:
+- name: vpcNetwrok
+  type: vpcNetwork-template.jinja
+  properties:
+    region: asia-northeast1
+    publicSubnetRange: 10.0.0.0/24
+    privateSubnetRange: 10.0.1.0/24
+
+- name: allow-ssh
+  type: firewallRule-template.jinja
+  properties:
+    direction: INGRESS
+    priority: 1000
+    sourceRanges:
+    - 0.0.0.0/0
+    allowedRules:
+    - IPProtocol: tcp
+      ports:
+      - '22'
+
+- name: service-account-analysis
+  type: serviceAccount-template.jinja
+
+- name: service-account-step
+  type: serviceAccount-template.jinja
+
+- name: analysis
+  type: computeEngine-template.jinja
+  properties:
+    zone: asia-northeast1-c
+    machineType: f1-micro
+    imageProject: centos-cloud
+    imageFamily: centos-7
+    diskSizeGb: 50
+    diskType: pd-standard
+    public_or_private: private
+    internalIp: 10.0.1.10
+    serviceAccount: service-account-analysis
+    users:
+    - name: user1
+      ssh_pub_key: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+- name: step
+  type: computeEngine-template.jinja
+  properties:
+    zone: asia-northeast1-b
+    machineType: f1-micro
+    imageProject: centos-cloud
+    imageFamily: centos-7
+    diskSizeGb: 10
+    diskType: pd-standard
+    public_or_private: public
+    internalIp: 10.0.0.10
+    serviceAccount: service-account-step
+
+- name: cloudStorage
+  type: cloudStorage-template.jinja

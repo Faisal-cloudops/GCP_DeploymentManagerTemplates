@@ -1,0 +1,49 @@
+resources:
+- name: {{ env["name"] }}
+  type: compute.v1.instance
+  properties:
+    zone: {{ properties["zone"] }}
+    machineType: https://www.googleapis.com/compute/v1/projects/{{ env["project"] }}/zones/{{ properties["zone"] }}/machineTypes/{{ properties["machineType"] }}
+    disks:
+    - deviceName: {{ env["name"] }}
+      type: PERSISTENT
+      boot: true
+      autoDelete: true
+      initializeParams:
+        sourceImage: https://www.googleapis.com/compute/v1/projects/{{ properties["imageProject"] }}/global/images/family/{{ properties["imageFamily"] }}
+        diskSizeGb: {{ properties["diskSizeGb"] }}
+        diskType: https://www.googleapis.com/compute/v1/projects/{{ env["project"] }}/zones/{{ properties["zone"] }}/diskTypes/{{ properties["diskType"] }}
+    networkInterfaces:
+    - network: $(ref.{{ env["project"] }}-vpc.selfLink)
+      subnetwork: $(ref.{{ env["project"] }}-vpc-{{ properties["public_or_private"] }}-network.selfLink)
+      networkIP: {{ properties["internalIp"] }}
+{% if properties["public_or_private"] == "private" %}
+      accessConfigs: []
+{% else %}
+      accessConfigs:
+      - name: External NAT
+        type: ONE_TO_ONE_NAT
+{% endif %}
+    canIpForward: false
+    serviceAccounts:
+      - email: $(ref.{{ properties["serviceAccount"] }}.email)
+        scopes:
+          - https://www.googleapis.com/auth/cloud-platform
+    tags:
+      items:
+      - {{ env["name"] }}
+      - {{ properties["public_or_private"] }}-subnet
+    metadata:
+      items:
+      - key: startup-script
+        value: |
+          #!/bin/bash
+{% for user in properties["users"] %}
+    {% set username = user["name"] %}
+    {% set ssh_pub_key = user["ssh_pub_key"] %}
+          sudo useradd -G google-sudoers -s /bin/bash -m {{ username }}
+          sudo -u {{ username }} ssh-keygen -t rsa -N "" -C "" -f /home/{{ username }}/.ssh/id_rsa
+          echo "{{ ssh_pub_key }}" >> /home/{{ username }}/.ssh/authorized_keys
+          chmod 644 /home/{{ username }}/.ssh/authorized_keys
+          chown {{ username }}:{{ username }} /home/{{ username }}/.ssh/authorized_keys
+{% endfor %}

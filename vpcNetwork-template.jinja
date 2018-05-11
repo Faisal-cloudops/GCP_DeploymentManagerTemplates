@@ -1,0 +1,22 @@
+resources:
+- name: {{ env["project"] }}-vpc
+  type: compute.v1.network
+  properties:
+    name: {{ env["project"] }}-vpc
+    autoCreateSubnetworks: false
+- name: {{ env["project"] }}-vpc-public-network
+  type: compute.v1.subnetwork
+  properties:
+    name: {{ env["project"] }}-vpc-public-network
+    network: $(ref.{{ env["project"] }}-vpc.selfLink)
+    ipCidrRange: {{ properties["publicSubnetRange"] }}
+    region: {{ properties["region"] }}
+    privateIpGoogleAccess: true
+- name: {{ env["project"] }}-vpc-private-network
+  type: compute.v1.subnetwork
+  properties:
+    name: {{ env["project"] }}-vpc-private-network
+    network: $(ref.{{ env["project"] }}-vpc.selfLink)
+    ipCidrRange: {{ properties["privateSubnetRange"] }}
+    region: {{ properties["region"] }}
+    privateIpGoogleAccess: true

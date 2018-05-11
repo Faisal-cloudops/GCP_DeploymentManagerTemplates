@@ -1,0 +1,56 @@
+resources:
+- name: {{ env["name"] }}
+  type: compute.v1.firewall
+  properties:
+    name: {{ env["name"] }}
+    network: $(ref.{{ env["project"] }}-vpc.selfLink)
+    priority: {{ properties["priority"] }}
+    direction: {{ properties["direction"] }}
+{% if "sourceRanges" in properties %}
+    sourceRanges:
+{% for sourceRange in properties["sourceRanges"] %}
+    - {{ sourceRange }}
+{% endfor %}
+{% endif %}
+{% if "destinationRanges" in properties %}
+    destinationRanges:
+{% for destinationRange in properties["destinationRanges"] %}
+    - {{ destinationRange }}
+{% endfor %}
+{% endif %}
+{% if "sourceTags" in properties["sourceTags"] %}
+    sourceTags:
+{% for sourceTag in properties["sourceTags"] %}
+    - {{ sourceTag }}
+{% endfor %}
+{% endif %}
+{% if "targetTags" in properties %}
+    targetTags:
+{% for targetTag in properties["targetTags"] %}
+    - {{ targetTag }}
+{% endfor %}
+{% endif %}
+{% if "allowedRules" in properties %}
+    allowed:
+{% for allowedRule in properties["allowedRules"] %}
+    {% set IPProtocol = allowedRule["IPProtocol"] %}
+    {% set ports = allowedRule["ports"] %}
+    - IPProtocol: {{ IPProtocol }}
+      ports: 
+    {% for port in ports %}
+      - {{ port }}
+    {% endfor %}
+{% endfor %}
+{% endif %}
+{% if "deniedRules" in properties %}
+    denied:
+{% for deniedRule in properties["deniedRules"] %}
+    {% set IPProtocol = deniedRule["IPProtocol"] %}
+    {% set ports = deniedRule["ports"] %}
+    - IPProtocol: {{ IPProtocol }}
+      ports: 
+    {% for port in ports %}
+      - {{ port }}
+    {% endfor %}
+{% endfor %}
+{% endif %}
