@@ -1,0 +1,21 @@
+resources:
+- name: {{ env["name"] }}
+  type: compute.v1.route
+  properties:
+    name: {{ env["name"] }}
+    network: $(ref.{{ env["project"] }}-vpc.selfLink)
+    tags: {{ properties["tags"] }}
+    destRange: {{ properties["destRange"] }}
+    priority: {{ properties["priority"] }}
+{% if "nextHopInstance" in properties %}
+    nextHopInstance: $(ref.{{ properties["nextHopInstance"] }}.selfLink)
+{% endif %}
+{% if "nextHopIp" in properties %}
+    nextHopIp: {{ properties["nextHopIp"] }}
+{% endif %}
+{% if "nextHopNetwork" in properties %}
+    nextHopNetwork: $(ref.{{ properties["nextHopNetwork"] }}.selfLink)
+{% endif %}
+{% if "nextHopGateway" in properties %}
+    nextHopGateway: $(ref.{{ properties["nextHopGateway"] }}.selfLink)
+{% endif %}

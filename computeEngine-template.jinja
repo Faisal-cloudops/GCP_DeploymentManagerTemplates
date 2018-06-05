@@ -24,7 +24,7 @@ resources:
       - name: External NAT
         type: ONE_TO_ONE_NAT
 {% endif %}
-    canIpForward: false
+    canIpForward: {{ properties["canIpForward"] }}
     serviceAccounts:
       - email: $(ref.{{ properties["serviceAccount"] }}.email)
         scopes:
@@ -47,3 +47,30 @@ resources:
           chmod 644 /home/{{ username }}/.ssh/authorized_keys
           chown {{ username }}:{{ username }} /home/{{ username }}/.ssh/authorized_keys
 {% endfor %}
+{% if "windowsUsers" in properties %}
+      - key: windows-startup-script-ps1
+        value: |
+          $hostname = [System.Environment]::MachineName
+          $aDSILocal = new-object System.DirectoryServices.DirectoryEntry("WinNT://" + $hostname + ",computer")
+          $group = "Administrators"
+{% for user in properties["windowsUsers"] %}
+    {% set username = user["name"] %}
+    {% set password = user["password"] %}
+          $user = '{{ username }}'
+          $pass = '{{ password }}'
+          # ユーザを作成
+          $newuser = $aDSILocal.Create("user", $user)
+          $newuser.SetPassword($pass)
+          $newuser.SetInfo()
+
+          # パスワードを無期限にする
+          $userFlags = $newuser.Get("UserFlags")
+          $userFlags = $userFlags -bor 0X10000
+          $newuser.Put("UserFlags", $userFlags)
+          $newuser.SetInfo()
+
+          # Administratosに追加する
+          $groups = $aDSILocal.GetObject("group", $group)
+          $groups.Add("WinNT://" + $hostname + "/" + $user)    
+{% endfor %}
+{% endif %}

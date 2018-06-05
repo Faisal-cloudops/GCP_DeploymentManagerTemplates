@@ -18,7 +18,7 @@ resources:
     - {{ destinationRange }}
 {% endfor %}
 {% endif %}
-{% if "sourceTags" in properties["sourceTags"] %}
+{% if "sourceTags" in properties %}
     sourceTags:
 {% for sourceTag in properties["sourceTags"] %}
     - {{ sourceTag }}

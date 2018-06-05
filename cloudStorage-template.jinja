@@ -1,37 +1,21 @@
 resources:
-- name: {{ env["project"] }}-admin-uploader-logs
+- name: {{ env["name"] }}
   type: storage.v1.bucket
   properties:
-    name: {{ env["project"] }}-admin-uploader-logs
-    storageClass: NEARLINE
-    location: asia-northeast1
+    name: {{ env["name"] }}
+    storageClass: {{ properties["storageClass"] }}
+    location: {{ properties["location"] }}
     versioning:
-      enabled: true
-    lifecycle:
-      rule:
-        - action:
-            type: Delete
-          condition:
-            age: 366
-    acl:
-    - role: OWNER
-      entity: project-owners-{{ env["project_number"] }}
-    defaultObjectAcl:
-    - role: OWNER
-      entity: project-owners-{{ env["project_number"] }}
-- name: {{ env["project"] }}-admin-uploader
-  type: storage.v1.bucket
-  properties:
-    name: {{ env["project"] }}-admin-uploader
-    storageClass: REGIONAL
-    location: asia-northeast1
-    versioning:
-      enabled: true
-    logging:
-      logBucket: {{ env["project"] }}-admin-uploader-logs
-    acl:
-    - role: OWNER
-      entity: project-owners-{{ env["project_number"] }}
-    defaultObjectAcl:
-    - role: OWNER
-      entity: project-owners-{{ env["project_number"] }}
+      enabled: {{ properties["versioning"] }}
+{% if "lifecycle" in properties %}
+    lifecycle: {{ properties["lifecycle"] }}
+{% endif %}
+{% if "acl" in properties %}
+    acl: {{ properties["acl"] }}
+{% endif %}
+{% if "defaultObjectAcl" in properties %}
+    defaultObjectAcl: {{ properties["defaultObjectAcl"] }}
+{% endif %}
+{% if "logging" in properties %}
+    logging: {{ properties["logging"] }}
+{% endif %}

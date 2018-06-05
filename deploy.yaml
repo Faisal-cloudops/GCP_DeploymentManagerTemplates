@@ -4,16 +4,31 @@ imports:
 - path: serviceAccount-template.jinja
 - path: computeEngine-template.jinja
 - path: cloudStorage-template.jinja
+- path: route-template.jinja
 
 resources:
 - name: vpcNetwrok
   type: vpcNetwork-template.jinja
   properties:
     region: asia-northeast1
-    publicSubnetRange: 10.0.0.0/24
-    privateSubnetRange: 10.0.1.0/24
+    publicSubnetRange: 172.20.0.0/24
+    privateSubnetRange: 172.20.1.0/24
 
-- name: allow-ssh
+- name: inbound-allow-ssh
+  type: firewallRule-template.jinja
+  properties:
+    direction: INGRESS
+    priority: 1000
+    targetTags:
+    - natgw
+    sourceRanges:
+    - 0.0.0.0/0
+    allowedRules:
+    - IPProtocol: tcp
+      ports:
+      - '22'
+
+- name: inbound-allow-rdp
   type: firewallRule-template.jinja
   properties:
     direction: INGRESS
@@ -23,31 +38,67 @@ resources:
     allowedRules:
     - IPProtocol: tcp
       ports:
-      - '22'
+      - '3389'
+
+- name: inbound-allow-internal-all
+  type: firewallRule-template.jinja
+  properties:
+    direction: INGRESS
+    priority: 1000
+    sourceRanges:
+    - 172.20.0.0/21
+    allowedRules:
+    - IPProtocol: tcp
+      ports:
+      - '0-65535'
+    - IPProtocol: udp
+      ports:
+      - '0-65535'
 
 - name: service-account-analysis
   type: serviceAccount-template.jinja
 
-- name: service-account-step
+- name: service-account-jumphost
+  type: serviceAccount-template.jinja
+
+- name: service-account-natgw
   type: serviceAccount-template.jinja
 
 - name: analysis
   type: computeEngine-template.jinja
   properties:
     zone: asia-northeast1-c
-    machineType: f1-micro
-    imageProject: centos-cloud
-    imageFamily: centos-7
+    machineType: g1-small
+    imageProject: windows-cloud
+    imageFamily: windows-2012-r2
     diskSizeGb: 50
     diskType: pd-standard
     public_or_private: private
-    internalIp: 10.0.1.10
+    internalIp: 172.20.1.11
+    canIpForward: false
     serviceAccount: service-account-analysis
-    users:
+    windowsUsers:
     - name: user1
-      ssh_pub_key: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      password: XXXXX
 
-- name: step
+- name: jumphost2
+  type: computeEngine-template.jinja
+  properties:
+    zone: asia-northeast1-b
+    machineType: g1-small
+    imageProject: windows-cloud
+    imageFamily: windows-2012-r2
+    diskSizeGb: 50
+    diskType: pd-standard
+    public_or_private: public
+    internalIp: 172.20.0.13
+    canIpForward: false
+    serviceAccount: service-account-jumphost
+    windowsUsers:
+    - name: user1
+      password: XXXXX
+
+- name: natgw
   type: computeEngine-template.jinja
   properties:
     zone: asia-northeast1-b
@@ -57,8 +108,41 @@ resources:
     diskSizeGb: 10
     diskType: pd-standard
     public_or_private: public
-    internalIp: 10.0.0.10
-    serviceAccount: service-account-step
+    internalIp: 172.20.0.12
+    canIpForward: true
+    serviceAccount: service-account-natgw
+    users:
+    - name: user1
+      ssh_pub_key: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
-- name: cloudStorage
+- name: route-natgw
+  type: route-template.jinja
+  properties:
+    tags:
+    - private-subnet
+    destRange: 0.0.0.0/0
+    priority: 999
+    nextHopInstance: natgw
+
+- name: mybucket-for-file-storage-logs
   type: cloudStorage-template.jinja
+  properties:
+    storageClass: NEARLINE
+    location: asia-northeast1
+    versioning: true
+    lifecycle:
+      rule:
+      - action:
+          type: Delete
+        confition:
+          age: 366
+
+- name: mybucket-for-file-storage
+  type: cloudStorage-template.jinja
+  properties:
+    storageClass: REGIONAL
+    location: asia-northeast1
+    versioning: true
+    logging:
+      logBucket: mybucket-for-file-storage-logs
+
