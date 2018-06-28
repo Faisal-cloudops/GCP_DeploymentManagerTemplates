@@ -1,0 +1,110 @@
+{%- macro dbDependencyList(failover="", readReplicas="") -%}
+  {% if failover %}
+    - {{ env["name"] }}-failover
+  {% endif %}
+  {% for i in range(readReplicas) %}
+    - {{ env["name"] }}-rr-{{ i }}
+  {% endfor %}
+{%- endmacro %}
+
+{% set dbDeps = dbDependencyList(properties["failover"], 
+  properties["readReplicas"]) %}
+
+resources:
+- name: {{ env["name"] }}-enableService-sqladmin
+  type: deploymentmanager.v2.virtual.enableService
+  properties:
+    consumerId: "project:{{ env['project'] }}"
+    serviceName: sqladmin.googleapis.com
+
+- name: {{ env["name"] }}-enableService-sql-component
+  type: deploymentmanager.v2.virtual.enableService
+  properties:
+    consumerId: "project:{{ env['project'] }}"
+    serviceName: sql-component.googleapis.com
+
+- name: {{ env["name"] }}-master
+  type: sqladmin.v1beta4.instance
+  metadata:
+    dependsOn:
+      - {{ env["name"] }}-enableService-sqladmin
+      - {{ env["name"] }}-enableService-sql-component
+  properties:
+    backendType: SECOND_GEN
+    instanceType: CLOUD_SQL_INSTANCE
+    databaseVersion: {{ properties["databaseVersion"] }}
+    region: {{ properties["region"] }}
+    settings:
+      tier: {{ properties["tier"] }}
+      dataDiskSizeGb: {{ properties["dataDiskSizeGb"] }}
+      dataDiskType: {{ properties["dataDiskType"] }}
+      storageAutoResize: true
+      replicationType: SYNCHRONOUS
+      locationPreference:
+        zone: {{ properties["zone"] }}
+      {% if properties["databaseFlags"] %}
+      databaseFlags: {{ properties["databaseFlags"] }}
+      {% endif %}
+      activationPolicy: ALWAYS
+      backupConfiguration: {{ properties["backupConfiguration"] }}
+      ipConfiguration:
+        authorizedNetworks: {{ properties["authorizedNetworks"] }}
+
+{% if properties["failover"] %}
+- name: {{ env["name"] }}-failover
+  type: sqladmin.v1beta4.instance
+  metadata:
+    dependsOn:
+      - {{ env["name"] }}-enableService-sqladmin
+      - {{ env["name"] }}-enableService-sql-component
+  properties:
+    backendType: SECOND_GEN
+    instanceType: READ_REPLICA_INSTANCE
+    databaseVersion: {{ properties["databaseVersion"] }}
+    region: {{ properties["region"] }}
+    masterInstanceName: $(ref.{{ env["name"] }}-master.name)
+    replicaConfiguration:
+      failoverTarget: true
+    settings:
+      tier: {{ properties["tier"] }}
+{% endif %}
+
+{% for i in range(properties["readReplicas"]) %}
+- name: {{ env["name"] }}-rr-{{ i }}
+  type: sqladmin.v1beta4.instance
+  properties:
+    backendType: SECOND_GEN
+    instanceType: READ_REPLICA_INSTANCE
+    databaseVersion: {{ properties["databaseVersion"] }}
+    region: {{ properties["region"] }}
+    masterInstanceName: $(ref.{{ env["name"] }}-master.name)
+    replicaConfiguration:
+      failoverTarget: false
+    settings:
+      tier: {{ properties["tier"] }}
+  metadata:
+    dependsOn:
+      - {{ env["name"] }}-enableService-sqladmin
+      - {{ env["name"] }}-enableService-sql-component
+  {% if properties["failover"] %}
+      - {{ env["name"] }}-failover
+  {% endif %}
+{% endfor %}
+
+outputs:
+  - name: {{ env["name"] }}-master-ip
+    value: $(ref.{{ env["name"] }}-master.ipAddresses[0].ipAddress)
+  - name: {{ env["name"] }}-master-connectionName
+    value: $(ref.{{ env["name"] }}-master.connectionName)
+  {% if properties["failover"] %} 
+  - name: {{ env["name"] }}-failover-ip
+    value: $(ref.{{ env["name"] }}-failover.ipAddresses[0].ipAddress)
+  - name: {{ env["name"] }}-failover-connectionName
+    value: $(ref.{{ env["name"] }}-failover.connectionName)
+  {% endif %}
+  {% for i in range(properties["readReplicas"]) %}
+  - name: {{ env["name"] }}-rr-{{ i }}-ip
+    value: $(ref.{{ env["name"] }}-rr-{{ i }}.ipAddresses[0].ipAddress)
+  - name: {{ env["name"] }}-rr-{{ i }}-connectionName
+    value: $(ref.{{ env["name"] }}-rr-{{ i }}.connectionName)
+  {% endfor %}

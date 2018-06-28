@@ -7,6 +7,7 @@ imports:
 - path: computeEngine-template.jinja
 - path: cloudStorage-template.jinja
 - path: route-template.jinja
+- path: cloudsql-template.jinja
 
 resources:
 - name: vpcNetwrok
@@ -216,3 +217,25 @@ resources:
           members:
           - user:dev@aikuma.tokyo
           - serviceAccount:$(ref.service-account-analysis.email)
+
+- name: cloudsql-sample-instance
+  type: cloudsql-template.jinja
+  properties:
+    databaseVersion: MYSQL_5_7
+    region: asia-northeast1
+    zone: asia-northeast1-b
+    tier: db-n1-standard-1
+    dataDiskSizeGb: 10
+    dataDiskType: PD_SSD
+    failover: true
+    databaseFlags:
+    - name: character_set_server
+      value: utf8
+    - name: default_time_zone
+      value: +09:00
+    backupConfiguration:
+      enabled: true
+      binaryLogEnabled: true
+      startTime: 18:00
+    authorizedNetworks: []
+    readReplicas: 1
