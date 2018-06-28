@@ -2,6 +2,7 @@ imports:
 - path: vpcNetwork-template.jinja
 - path: firewallRule-template.jinja
 - path: serviceAccount-template.jinja
+- path: iamPolicy-template.jinja
 - path: iamPolicyPatch-template.jinja
 - path: computeEngine-template.jinja
 - path: cloudStorage-template.jinja
@@ -64,6 +65,36 @@ resources:
 
 - name: service-account-natgw
   type: serviceAccount-template.jinja
+
+#- name: setIamPolicy
+#  type: iamPolicy-template.jinja
+#  metadata:
+#    dependsOn:
+#      - service-account-analysis
+#      - service-account-jumphost
+#      - service-account-natgw
+#  properties:
+#    accessControl:
+#      bindings:
+#      - members:
+#        - serviceAccount:service-XXXXXXXXXXXX@compute-system.iam.gserviceaccount.com
+#        role: roles/compute.serviceAgent
+#      - members:
+#        - serviceAccount:service-XXXXXXXXXXXX@container-engine-robot.iam.gserviceaccount.com
+#        role: roles/container.serviceAgent
+#      - members:
+#        - serviceAccount:XXXXXXXXXXXX-compute@developer.gserviceaccount.com
+#        - serviceAccount:project_name@appspot.gserviceaccount.com
+#        - serviceAccount:service-XXXXXXXXXXXX@containerregistry.iam.gserviceaccount.com
+#        - serviceAccount:service-account-analysis@project_name.iam.gserviceaccount.com
+#        - serviceAccount:service-account-jumphost@project_name.iam.gserviceaccount.com
+#        - serviceAccount:service-account-natgw@project_name.iam.gserviceaccount.com
+#        - user:developer@gmail.com
+#        role: roles/editor
+#      - members:
+#        - serviceAccount:XXXXXXXXXXXX@cloudservices.gserviceaccount.com
+#        - user:admin@gmail.com
+#        role: roles/owner
 
 # This Template can be used just once in deployments.
 - name: iamPolicyPatch

@@ -1,0 +1,16 @@
+resources:
+- name: {{ env["name"] }}-enableService-cloudresourcemanager
+  type: deploymentmanager.v2.virtual.enableService
+  properties:
+    consumerId: "project:{{ env['project'] }}"
+    serviceName: cloudresourcemanager.googleapis.com
+
+- name: {{ env["name"] }}-setIamPolicy
+  type: cloudresourcemanager.v1.project
+  metadata:
+    dependsOn:
+    - {{ env["name"] }}-enableService-cloudresourcemanager
+  properties:
+    projectId: {{ env["project"] }}
+  accessControl:
+    gcpIamPolicy: {{ properties["accessControl"] }}
