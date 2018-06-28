@@ -159,9 +159,25 @@ resources:
 
 - name: mybucket-for-file-storage
   type: cloudStorage-template.jinja
+  metadata:
+    dependsOn:
+      - mybucket-for-file-storage-logs
   properties:
     storageClass: REGIONAL
     location: asia-northeast1
     versioning: true
     logging:
       logBucket: mybucket-for-file-storage-logs
+    accessControl:
+      gcpIamPolicy:
+        bindings:
+        - role: roles/storage.legacyBucketReader
+          members:
+          - user:dev@aikuma.tokyo
+        - role: roles/storage.legacyBucketWriter
+          members:
+          - serviceAccount:$(ref.service-account-analysis.email)
+        - role: roles/storage.objectViewer
+          members:
+          - user:dev@aikuma.tokyo
+          - serviceAccount:$(ref.service-account-analysis.email)

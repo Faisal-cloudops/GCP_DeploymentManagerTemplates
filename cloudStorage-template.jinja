@@ -19,3 +19,14 @@ resources:
 {% if "logging" in properties %}
     logging: {{ properties["logging"] }}
 {% endif %}
+  accessControl:
+    gcpIamPolicy:
+      bindings:
+      - members:
+        - projectOwner:{{ env["project"] }}
+        role: roles/storage.legacyBucketOwner
+  {% if "accessControl" in properties %}
+      {% for member in properties["accessControl"]["gcpIamPolicy"]["bindings"] %}
+      - {{ member }}
+      {% endfor %}
+  {% endif %}
