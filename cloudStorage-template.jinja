@@ -13,8 +13,20 @@ resources:
 {% if "acl" in properties %}
     acl: {{ properties["acl"] }}
 {% endif %}
+    defaultObjectAcl:
+      - entity: project-owners-{{ env["project"] }}
+        projectTeam:
+          projectNumber: {{ env["project_number"] }}
+          team: owners
+        role: OWNER
 {% if "defaultObjectAcl" in properties %}
-    defaultObjectAcl: {{ properties["defaultObjectAcl"] }}
+      {% for acl in properties["defaultObjectAcl"] %}
+      - entity: {{ acl["entity"] }}
+        projectTeam:
+          projectNumber: {{ env["project_number"] }}
+          team: {{ acl["team"] }}
+        role: {{ acl["role"] }}
+      {% endfor %}
 {% endif %}
 {% if "logging" in properties %}
     logging: {{ properties["logging"] }}

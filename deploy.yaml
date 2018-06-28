@@ -168,6 +168,10 @@ resources:
     versioning: true
     logging:
       logBucket: mybucket-for-file-storage-logs
+    defaultObjectAcl:
+    - entity: user-example@gmail.com
+      team: viewers
+      role: READER
     accessControl:
       gcpIamPolicy:
         bindings:
