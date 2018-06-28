@@ -31,18 +31,6 @@ resources:
       ports:
       - '22'
 
-- name: inbound-allow-rdp
-  type: firewallRule-template.jinja
-  properties:
-    direction: INGRESS
-    priority: 1000
-    sourceRanges:
-    - 0.0.0.0/0
-    allowedRules:
-    - IPProtocol: tcp
-      ports:
-      - '3389'
-
 - name: inbound-allow-internal-all
   type: firewallRule-template.jinja
   properties:
@@ -58,7 +46,7 @@ resources:
       ports:
       - '0-65535'
 
-- name: service-account-analysis
+- name: service-account-web
   type: serviceAccount-template.jinja
 
 - name: service-account-jumphost
@@ -98,54 +86,54 @@ resources:
 #        role: roles/owner
 
 # This Template can be used just once in deployments.
-- name: iamPolicyPatch
-  type: iamPolicyPatch-template.jinja
-  properties:
-    gcpIamPolicyPatch:
-      add:
-      - role: roles/editor
-        members:
-        - serviceAccount:$(ref.service-account-analysis.email)
-        - serviceAccount:$(ref.service-account-jumphost.email)
-        - serviceAccount:$(ref.service-account-natgw.email)
-      remove:
-      - role: roles/editor
-        members:
-        - user:example@gmail.com
+#- name: iamPolicyPatch
+#  type: iamPolicyPatch-template.jinja
+#  properties:
+#    gcpIamPolicyPatch:
+#      add:
+#      - role: roles/editor
+#        members:
+#        - serviceAccount:$(ref.service-account-web.email)
+#        - serviceAccount:$(ref.service-account-jumphost.email)
+#        - serviceAccount:$(ref.service-account-natgw.email)
+#      remove:
+#      - role: roles/editor
+#        members:
+#        - user:example@gmail.com
 
-- name: analysis
+- name: web-1
   type: computeEngine-template.jinja
   properties:
-    zone: asia-northeast1-c
-    machineType: g1-small
-    imageProject: windows-cloud
-    imageFamily: windows-2012-r2
-    diskSizeGb: 50
+    zone: asia-northeast1-b
+    machineType: f1-micro
+    imageProject: centos-cloud
+    imageFamily: centos-7
+    diskSizeGb: 10
     diskType: pd-standard
     public_or_private: private
     internalIp: 172.20.1.11
     canIpForward: false
-    serviceAccount: service-account-analysis
-    windowsUsers:
+    serviceAccount: service-account-web
+    users:
     - name: user1
-      password: XXXXX
+      ssh_pub_key: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
-- name: jumphost2
+- name: jumphost
   type: computeEngine-template.jinja
   properties:
     zone: asia-northeast1-b
-    machineType: g1-small
-    imageProject: windows-cloud
-    imageFamily: windows-2012-r2
-    diskSizeGb: 50
+    machineType: f1-micro
+    imageProject: centos-cloud
+    imageFamily: centos-7
+    diskSizeGb: 10
     diskType: pd-standard
     public_or_private: public
-    internalIp: 172.20.0.13
+    internalIp: 172.20.0.11
     canIpForward: false
     serviceAccount: service-account-jumphost
-    windowsUsers:
+    users:
     - name: user1
-      password: XXXXX
+      ssh_pub_key: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 - name: natgw
   type: computeEngine-template.jinja
@@ -173,69 +161,69 @@ resources:
     priority: 999
     nextHopInstance: natgw
 
-- name: mybucket-for-file-storage-logs
-  type: cloudStorage-template.jinja
-  metadata:
-    dependsOn:
-      - iamPolicyPatch
-  properties:
-    storageClass: NEARLINE
-    location: asia-northeast1
-    versioning: true
-    lifecycle:
-      rule:
-      - action:
-          type: Delete
-        condition:
-          age: 366
+#- name: mybucket-for-file-storage-logs
+#  type: cloudStorage-template.jinja
+#  metadata:
+#    dependsOn:
+#      - iamPolicyPatch
+#  properties:
+#    storageClass: NEARLINE
+#    location: asia-northeast1
+#    versioning: true
+#    lifecycle:
+#      rule:
+#      - action:
+#          type: Delete
+#        condition:
+#          age: 366
+#
+#- name: mybucket-for-file-storage
+#  type: cloudStorage-template.jinja
+#  metadata:
+#    dependsOn:
+#      - mybucket-for-file-storage-logs
+#  properties:
+#    storageClass: REGIONAL
+#    location: asia-northeast1
+#    versioning: true
+#    logging:
+#      logBucket: mybucket-for-file-storage-logs
+#    defaultObjectAcl:
+#    - entity: user-dev@aikuma.tokyo 
+#      team: viewers
+#      role: READER
+#    accessControl:
+#      gcpIamPolicy:
+#        bindings:
+#        - role: roles/storage.legacyBucketReader
+#          members:
+#          - user:developer@gmail.com
+#        - role: roles/storage.legacyBucketWriter
+#          members:
+#          - serviceAccount:$(ref.service-account-analysis.email)
+#        - role: roles/storage.objectViewer
+#          members:
+#          - user:developer@gmail.com
+#          - serviceAccount:$(ref.service-account-analysis.email)
 
-- name: mybucket-for-file-storage
-  type: cloudStorage-template.jinja
-  metadata:
-    dependsOn:
-      - mybucket-for-file-storage-logs
-  properties:
-    storageClass: REGIONAL
-    location: asia-northeast1
-    versioning: true
-    logging:
-      logBucket: mybucket-for-file-storage-logs
-    defaultObjectAcl:
-    - entity: user-example@gmail.com
-      team: viewers
-      role: READER
-    accessControl:
-      gcpIamPolicy:
-        bindings:
-        - role: roles/storage.legacyBucketReader
-          members:
-          - user:dev@aikuma.tokyo
-        - role: roles/storage.legacyBucketWriter
-          members:
-          - serviceAccount:$(ref.service-account-analysis.email)
-        - role: roles/storage.objectViewer
-          members:
-          - user:dev@aikuma.tokyo
-          - serviceAccount:$(ref.service-account-analysis.email)
-
-- name: cloudsql-sample-instance
-  type: cloudsql-template.jinja
-  properties:
-    databaseVersion: MYSQL_5_7
-    region: asia-northeast1
-    zone: asia-northeast1-b
-    tier: db-n1-standard-1
-    dataDiskSizeGb: 10
-    dataDiskType: PD_SSD
-    failover: true
-    databaseFlags:
-    - name: character_set_server
-      value: utf8
-    - name: default_time_zone
-      value: +09:00
-    backupConfiguration:
-      enabled: true
-      binaryLogEnabled: true
-      startTime: 18:00
-    authorizedNetworks: []
-    readReplicas: 1
+#- name: cloudsql-sample-instance
+#  type: cloudsql-template.jinja
+#  properties:
+#    databaseVersion: MYSQL_5_7
+#    region: asia-northeast1
+#    zone: asia-northeast1-b
+#    tier: db-n1-standard-1
+#    dataDiskSizeGb: 10
+#    dataDiskType: PD_SSD
+#    failover: true
+#    databaseFlags:
+#    - name: character_set_server
+#      value: utf8
+#    - name: default_time_zone
+#      value: +09:00
+#    backupConfiguration:
+#      enabled: true
+#      binaryLogEnabled: true
+#      startTime: 18:00
+#    authorizedNetworks: []
+#    readReplicas: 1
