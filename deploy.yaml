@@ -65,13 +65,9 @@ resources:
 - name: service-account-natgw
   type: serviceAccount-template.jinja
 
-- name: add-iamPolicy-to-serviceaccount
+# This Template can be used just once in deployments.
+- name: iamPolicyPatch
   type: iamPolicyPatch-template.jinja
-  metadata:
-    dependsOn:
-    - service-account-analysis
-    - service-account-jumphost
-    - service-account-natgw
   properties:
     gcpIamPolicyPatch:
       add:
@@ -80,14 +76,6 @@ resources:
         - serviceAccount:$(ref.service-account-analysis.email)
         - serviceAccount:$(ref.service-account-jumphost.email)
         - serviceAccount:$(ref.service-account-natgw.email)
-
-- name: remove-iamPolicy-from-user
-  type: iamPolicyPatch-template.jinja
-  metadata:
-    dependsOn:
-    - add-iamPolicy-to-serviceaccount
-  properties:
-    gcpIamPolicyPatch:
       remove:
       - role: roles/editor
         members:
@@ -155,6 +143,9 @@ resources:
 
 - name: mybucket-for-file-storage-logs
   type: cloudStorage-template.jinja
+  metadata:
+    dependsOn:
+      - iamPolicyPatch
   properties:
     storageClass: NEARLINE
     location: asia-northeast1

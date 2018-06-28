@@ -1,28 +1,23 @@
 resources:
-- name: {{ env["name"] }}-enableService-cloudresourcemanager
+- name: enableService-cloudresourcemanager
   type: deploymentmanager.v2.virtual.enableService
   properties:
     consumerId: "project:{{ env['project'] }}"
     serviceName: cloudresourcemanager.googleapis.com
     
-- name: {{ env["name"] }}-getIamPolicy
+- name: getIamPolicy
   action: gcp-types/cloudresourcemanager-v1:cloudresourcemanager.projects.getIamPolicy
   metadata:
     dependsOn:
-    - {{ env["name"] }}-enableService-cloudresourcemanager
+    - enableService-cloudresourcemanager
     runtimePolicy:
     - UPDATE_ALWAYS
   properties:
     resource: {{ env["project"] }}
     
-- name: {{ env["name"] }}-setIamPolicy
+- name: setIamPolicy
   action: gcp-types/cloudresourcemanager-v1:cloudresourcemanager.projects.setIamPolicy
-  metadata:
-    dependsOn:
-    - {{ env["name"] }}-getIamPolicy
-    runtimePolicy:
-    - UPDATE_ALWAYS
   properties:
     resource: {{ env["project"] }}
-    policy: $(ref.{{ env["name"] }}-getIamPolicy)
+    policy: $(ref.getIamPolicy)
     gcpIamPolicyPatch: {{ properties["gcpIamPolicyPatch"] }}
