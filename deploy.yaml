@@ -2,6 +2,7 @@ imports:
 - path: vpcNetwork-template.jinja
 - path: firewallRule-template.jinja
 - path: serviceAccount-template.jinja
+- path: iamPolicyPatch-template.jinja
 - path: computeEngine-template.jinja
 - path: cloudStorage-template.jinja
 - path: route-template.jinja
@@ -63,6 +64,34 @@ resources:
 
 - name: service-account-natgw
   type: serviceAccount-template.jinja
+
+- name: add-iamPolicy-to-serviceaccount
+  type: iamPolicyPatch-template.jinja
+  metadata:
+    dependsOn:
+    - service-account-analysis
+    - service-account-jumphost
+    - service-account-natgw
+  properties:
+    gcpIamPolicyPatch:
+      add:
+      - role: roles/editor
+        members:
+        - serviceAccount:$(ref.service-account-analysis.email)
+        - serviceAccount:$(ref.service-account-jumphost.email)
+        - serviceAccount:$(ref.service-account-natgw.email)
+
+- name: remove-iamPolicy-from-user
+  type: iamPolicyPatch-template.jinja
+  metadata:
+    dependsOn:
+    - add-iamPolicy-to-serviceaccount
+  properties:
+    gcpIamPolicyPatch:
+      remove:
+      - role: roles/editor
+        members:
+        - user:example@gmail.com
 
 - name: analysis
   type: computeEngine-template.jinja
@@ -134,7 +163,7 @@ resources:
       rule:
       - action:
           type: Delete
-        confition:
+        condition:
           age: 366
 
 - name: mybucket-for-file-storage
@@ -145,4 +174,3 @@ resources:
     versioning: true
     logging:
       logBucket: mybucket-for-file-storage-logs
-
